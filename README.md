@@ -1,16 +1,61 @@
-# React + Vite
+# <p align="center">✨ සිංහල Unicode Converter | BETA v1.01 ✨</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<div align="center">
+  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJidm9idjJidm9idjJidm9idjI/l41lTjJ9zV5Lw8Yy8/giphy.gif" width="600" alt="Animated Banner" />
+  <br />
+  <p align="center">
+    <b>A high-fidelity, bidirectional conversion engine for Sinhala Typography.</b>
+    <br />
+    <sub>Engineered by <a href="https://github.com/itsvinz23">VinZ</a> • Software Engineering Student @ NIBM</sub>
+  </p>
 
-Currently, two official plugins are available:
+  <img src="https://img.shields.io/badge/Status-BETA_v1.01-red?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Production-Ready-green?style=for-the-badge" />
+</div>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 The Mission
+This tool was engineered to solve the "Web-to-Print" gap. While the internet uses **Unicode**, professional design suites (Photoshop, Premiere Pro, FL Studio) still rely heavily on **FM Abhaya** (Legacy/ASCII) encoding for advanced typography. 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This converter allows you to write in modern Sinhala and instantly flip it into a legacy format compatible with your favorite production tools.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ✨ Features
+- **⚡ Longest-Match-First Algorithm:** Correctly handles complex Sinhala ligatures (Kombuwa, Hal-kiriema).
+- **🔄 Fully Bidirectional:** Convert `Unicode → FM` or `FM → Unicode` with zero friction.
+- **🎨 Premium Glassmorphism UI:** A sleek, developer-centric interface with gold accents.
+- **📋 Smart Clipboard:** One-tap copy with animated visual feedback.
+
+---
+
+## 🛤️ Expected Roadmap
+| Phase | Milestone | Description |
+| :--- | :--- | :--- |
+| **Q2 2026** | **v1.02: Smart Filtering** | Auto-detect English text and numbers to prevent scrambling. |
+| **Q3 2026** | **v1.03: Live Preview** | Toggle between Unicode and FM font rendering in the output box. |
+| **Q4 2026** | **v1.04: Mobile Sync** | Optimized PWA support for mobile production tweaks. |
+| **2027** | **v2.0: API Access** | Public API for other developers to integrate the conversion logic. |
+
+---
+
+## ⚠️ KNOWN ERRORS (The "Beta" Reality)
+- **English Scrambling:** Latin text (like *"Valorant"* or *"Hit Registration"*) gets scrambled because FM encoding reuses Latin keys.
+- **Missing Characters:** Rare characters like **ඥ, ඤ** or **ළු** may pass through unchanged in this version.
+- **Visual Glitch:** Output will look like "gibberish" until you apply the **FM Abhaya** font in your software.
+
+---
+
+## 🛠️ Installation
+
+```bash
+# Clone the repository
+git clone [https://github.com/itsvinz23/Sinhala-Unicode-Converter.git](https://github.com/itsvinz23/Sinhala-Unicode-Converter.git)
+
+# Install dependencies
+npm install
+
+# Launch Development Server
+npm run dev
