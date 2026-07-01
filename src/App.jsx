@@ -1,118 +1,249 @@
-import { useState, useCallback } from "react";
-
-// ─── Mappings ────────────────────────────────────────────────────────────────
-const UNICODE_TO_FM = {
-  // Vowels
-  "අ": "w", "ආ": "wd", "ඇ": "we", "ඈ": "wE",
-  "ඉ": "b", "ඊ": "B", "උ": "W", "ඌ": "U",
-  "එ": "t", "ඒ": "T", "ඔ": "f", "ඕ": "F",
-  "ඍ": "re", "ඎ": "rE",
-
-  // Consonants + vowel combos (longer first is handled by sort, but grouping helps reading)
-  "කා": "ld", "කි": "ls", "කී": "lS", "කු": "l=", "කූ": "l==",
-  "කෙ": "fl", "කේ": "Tl", "කො": "fld", "කෝ": "Tld", "ක": "l",
-
-  "ඛා": "Ld", "ඛ": "L",
-  "ගා": ".d", "ගි": ".s", "ග": ".",
-  "ඝ": ">", "ඞ": "Z",
-  "චා": "pid", "චි": "pis", "ච": "pi",
-  "ජා": "cd", "ජ": "c", "ඤ": "Z",
-  "ටා": "`d", "ට": "`", "ඩ": "v", "ණ": "K",
-  "තා": "Nd", "ති": "Ns", "ත": "N",
-  "ථ": "O",
-  "දා": "od", "දි": "os", "ද": "o", "ධ": "O",
-  "නා": "kd", "න": "k",
-  "පා": "md", "පි": "ms", "පී": "mS", "පු": "m=", "ප": "m",
-  "ඵ": "M", "බා": "nd", "බ": "n", "භ": "P",
-  "මා": "ud", "ම": "u",
-  "යා": "hd", "ය": "h",
-  "රා": "rd", "ර": "r",
-  "ලා": ",d", "ල": ",",
-  "වා": "jd", "ව": "j",
-  "ශ": "Y", "ෂ": "I",
-  "සා": "id", "ස": "i",
-  "හා": "yd", "හ": "y",
-  "ළා": "Ad", "ළ": "A",
-  "ෆ": "-",
-
-  // Vowel signs / diacritics
-  "ා": "d", "ි": "s", "ී": "S",
-  "ු": "=", "ූ": "==",
-  "ෙ": "f", "ේ": "T",
-  "ෛ": "TT", "ො": "fd", "ෝ": "Td", "ෞ": "TTd",
-  "ං": "x", "ඃ": "X",
-  "්": ";",
-  "ෘ": "q", "ෲ": "Q",
-
-  // Special
-  "\u200d": "a",  // ZWJ
-};
-
-// ─── Converter engine ─────────────────────────────────────────────────────────
-function buildReverseMap(forward) {
-  const reverse = {};
-  Object.entries(forward).forEach(([unicode, fm]) => {
-    if (!reverse[fm]) reverse[fm] = unicode;
-  });
-  return reverse;
-}
-
-const FM_TO_UNICODE = buildReverseMap(UNICODE_TO_FM);
-
-function convert(input, map) {
-  if (!input.trim()) return "";
-  const sorted = Object.keys(map).sort((a, b) => b.length - a.length);
-  let result = input;
-  for (const key of sorted) {
-    result = result.split(key).join(map[key]);
-  }
-  return result;
-}
+import { useState, useCallback, useRef, useEffect } from "react";
+import { fmAbayaToUnicode, unicodeToDlManel, singlishToUnicode } from "sinhala-unicode-coverter";
+import "./index.css";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconCopy = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
   </svg>
 );
-const IconSwap = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7 16V4m0 0L3 8m4-4 4 4"/><path d="M17 8v12m0 0 4-4m-4 4-4-4"/>
-  </svg>
-);
-const IconClear = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
-  </svg>
-);
 const IconCheck = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 6L9 17l-5-5"/>
   </svg>
 );
+const IconClear = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+  </svg>
+);
+const IconSwap = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 16V4m0 0L3 8m4-4 4 4"/><path d="M17 8v12m0 0 4-4m-4 4-4-4"/>
+  </svg>
+);
+const IconPlay = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </svg>
+);
+const IconDownload = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+);
+const IconText = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+  </svg>
+);
+const IconVolume = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+  </svg>
+);
+const IconFont = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
+  </svg>
+);
+const IconBrush = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 0 0-3-3Z"/>
+    <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5 4.5 15"/>
+  </svg>
+);
+
+// ─── Soundboard data ─────────────────────────────────────────────────────────
+const SOUNDS = [
+  { id: 1, title: "Apita Kohenda Kiri", emoji: "🐄", desc: "Viral Sinhala meme", url: null },
+  { id: 2, title: "Ado Ado!", emoji: "😂", desc: "Classic reaction", url: null },
+  { id: 3, title: "Loku Ayiya", emoji: "👊", desc: "Trending voice clip", url: null },
+  { id: 4, title: "Eka Niyamayi", emoji: "🎯", desc: "Viral phrase", url: null },
+  { id: 5, title: "Machan Machan", emoji: "🤙", desc: "Sri Lankan slangs", url: null },
+  { id: 6, title: "Suba Anek", emoji: "🙏", desc: "Blessing send-off", url: null },
+  { id: 7, title: "Wahala!", emoji: "🔥", desc: "Hype moment", url: null },
+  { id: 8, title: "Gedi Paarak", emoji: "⚡", desc: "Epic highlight sound", url: null },
+];
+
+// ─── Fonts data ───────────────────────────────────────────────────────────────
+const FONTS = [
+  {
+    id: 1,
+    name: "FM Abhaya",
+    desc: "The most popular legacy Sinhala font used in print and video editing. Required for CapCut Sinhala text.",
+    preview: "සිංහල",
+    url: "https://www.fonts.lk/fonts/fm-abhaya.zip",
+    note: "FM Abhaya, FM Malithi compatible",
+  },
+  {
+    id: 2,
+    name: "FM Bindumathi",
+    desc: "Bold, clean legacy font. Great for subtitles and captions in videos.",
+    preview: "අකුරු",
+    url: "https://www.fonts.lk/fonts/fm-bindumathi.zip",
+    note: "Wide usage in Sri Lankan media",
+  },
+  {
+    id: 3,
+    name: "Iskoola Pota",
+    desc: "Microsoft's free Unicode Sinhala font. Safe default for web and social media.",
+    preview: "කතාව",
+    url: "https://fonts.google.com/noto/specimen/Noto+Sans+Sinhala",
+    note: "Unicode standard — works everywhere",
+  },
+  {
+    id: 4,
+    name: "Noto Sans Sinhala",
+    desc: "Google's open-source Sinhala font. Modern, clean, and perfect for YouTube thumbnails.",
+    preview: "දිනය",
+    url: "https://fonts.google.com/noto/specimen/Noto+Sans+Sinhala",
+    note: "Free Google Fonts — perfect for digital",
+  },
+];
+
+// ─── Text Style Presets data ─────────────────────────────────────────────────
+const PRESETS = [
+  {
+    id: 1,
+    name: "🔥 Flame Glow",
+    preview: "ගිනි ස්ටයිල්",
+    style: {
+      color: "#ff4500",
+      textShadow: "0 0 10px #ff4500, 0 0 25px #ff6000, 0 0 50px #ff8c00",
+      fontWeight: 900,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "color: #ff4500;\ntext-shadow: 0 0 10px #ff4500, 0 0 25px #ff6000;\nfont-weight: 900;",
+  },
+  {
+    id: 2,
+    name: "💎 Diamond Neon",
+    preview: "නිල් ලයිට්",
+    style: {
+      color: "#00f0ff",
+      textShadow: "0 0 8px #00f0ff, 0 0 20px #0066ff",
+      fontWeight: 900,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "color: #00f0ff;\ntext-shadow: 0 0 8px #00f0ff, 0 0 20px #0066ff;\nfont-weight: 900;",
+  },
+  {
+    id: 3,
+    name: "👑 Gold King",
+    preview: "රජ ස්ටයිල්",
+    style: {
+      background: "linear-gradient(135deg, #ffd700, #ff8c00)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      fontWeight: 900,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "background: linear-gradient(135deg, #ffd700, #ff8c00);\n-webkit-background-clip: text;\n-webkit-text-fill-color: transparent;\nfont-weight: 900;",
+  },
+  {
+    id: 4,
+    name: "🌸 Pink Anime",
+    preview: "ලස්සන ෆොන්ට්",
+    style: {
+      color: "#ff79c6",
+      textShadow: "0 0 8px #ff79c6, 0 2px 4px rgba(0,0,0,0.8)",
+      fontWeight: 700,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "color: #ff79c6;\ntext-shadow: 0 0 8px #ff79c6, 0 2px 4px rgba(0,0,0,0.8);\nfont-weight: 700;",
+  },
+  {
+    id: 5,
+    name: "⚡ Electric",
+    preview: "විදුලි ස්ටයිල්",
+    style: {
+      color: "#f9ca24",
+      textShadow: "0 0 6px #f9ca24, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+      fontWeight: 900,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "color: #f9ca24;\ntext-shadow: 0 0 6px #f9ca24;\nfont-weight: 900;",
+  },
+  {
+    id: 6,
+    name: "🌊 Ocean Wave",
+    preview: "සාගර ෆොන්ට්",
+    style: {
+      background: "linear-gradient(135deg, #00b4db, #0083b0)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      fontWeight: 900,
+      fontSize: 26,
+      fontFamily: "Noto Sans Sinhala, sans-serif",
+    },
+    css: "background: linear-gradient(135deg, #00b4db, #0083b0);\n-webkit-background-clip: text;\n-webkit-text-fill-color: transparent;\nfont-weight: 900;",
+  },
+];
+
+// ─── Mode Config ─────────────────────────────────────────────────────────────
+const MODES = [
+  { id: "unicode-to-fm", label: "Unicode → FM", badge: "to-fm", badgeLabel: "FM ABHAYA" },
+  { id: "fm-to-unicode", label: "FM → Unicode", badge: "to-unicode", badgeLabel: "UNICODE" },
+  { id: "singlish", label: "Singlish → Unicode", badge: "singlish", badgeLabel: "PHONETIC" },
+];
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const [activeTab, setActiveTab] = useState("translator");
+  const [mode, setMode] = useState("unicode-to-fm");
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [mode, setMode] = useState(null); // "toFM" | "toUnicode"
   const [copied, setCopied] = useState(false);
-  const [charCount, setCharCount] = useState(0);
+  const [copiedPresetId, setCopiedPresetId] = useState(null);
+  const [playingId, setPlayingId] = useState(null);
 
-  const handleInput = (val) => {
-    setInput(val);
-    setCharCount(val.length);
-    setOutput("");
-    setMode(null);
-  };
+  const cardRef = useRef(null);
 
-  const doConvert = useCallback((direction) => {
-    if (!input.trim()) return;
-    const map = direction === "toFM" ? UNICODE_TO_FM : FM_TO_UNICODE;
-    setOutput(convert(input, map));
-    setMode(direction);
-  }, [input]);
+  // ── Real-time conversion
+  const output = (() => {
+    if (!input.trim()) return "";
+    try {
+      if (mode === "unicode-to-fm") return unicodeToDlManel(input);
+      if (mode === "fm-to-unicode") return fmAbayaToUnicode(input);
+      if (mode === "singlish") return singlishToUnicode(input);
+    } catch {
+      return "⚠️ Conversion error";
+    }
+    return "";
+  })();
 
+  // ── 3D Mouse Tilt
+  const handleMouseMove = useCallback((e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const rotateX = ((y - cy) / cy) * -7;
+    const rotateY = ((x - cx) / cx) * 7;
+    card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    card.style.boxShadow = `
+      ${-rotateY * 2}px ${rotateX * 2}px 40px -10px rgba(139, 92, 246, 0.2),
+      0 30px 60px -20px rgba(0, 0, 0, 0.6)
+    `;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
+    card.style.boxShadow = "0 30px 60px -20px rgba(0, 0, 0, 0.6)";
+  }, []);
+
+  // ── Copy output
   const handleCopy = () => {
     if (!output) return;
     navigator.clipboard.writeText(output).then(() => {
@@ -121,300 +252,307 @@ export default function App() {
     });
   };
 
+  // ── Swap
   const handleSwap = () => {
     if (!output) return;
     setInput(output);
-    setOutput("");
-    setMode(null);
-    setCharCount(output.length);
   };
 
-  const handleClear = () => {
-    setInput("");
-    setOutput("");
-    setMode(null);
-    setCharCount(0);
+  // ── Clear
+  const handleClear = () => setInput("");
+
+  // ── Play sound (placeholder — vibrates / shows playing state)
+  const handlePlaySound = (id) => {
+    setPlayingId(id);
+    setTimeout(() => setPlayingId(null), 2000);
   };
+
+  // ── Copy Preset CSS
+  const handleCopyPreset = (preset) => {
+    navigator.clipboard.writeText(preset.css).then(() => {
+      setCopiedPresetId(preset.id);
+      setTimeout(() => setCopiedPresetId(null), 2000);
+    });
+  };
+
+  const activeMode = MODES.find((m) => m.id === mode);
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#0f0f0f",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      padding: "48px 20px 80px",
-      fontFamily: "'Georgia', serif",
-    }}>
+    <>
+      {/* 3D Background Grid */}
+      <div className="bg-grid-container">
+        <div className="bg-grid" />
+        <div className="bg-glow-spot glow-purple" />
+        <div className="bg-glow-spot glow-cyan" />
+      </div>
 
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 48 }}>
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 10,
-          background: "#1a1a1a",
-          border: "1px solid #2a2a2a",
-          borderRadius: 40,
-          padding: "6px 16px",
-          marginBottom: 24,
-        }}>
-          <span style={{ fontFamily: "monospace", fontSize: 11, color: "#555", letterSpacing: 2, textTransform: "uppercase" }}>v1.0</span>
-          <span style={{ width: 1, height: 12, background: "#2a2a2a" }} />
-          <span style={{ fontFamily: "monospace", fontSize: 11, color: "#888", letterSpacing: 1 }}>Unicode ↔ FM Abhaya</span>
+      <div className="app-container">
+        {/* ── Header ── */}
+        <div className="badge-3d">
+          <span>v2.0</span>
+          <span className="badge-divider" />
+          <span className="badge-accent">Sri Lankan Creator Toolkit</span>
         </div>
-        <h1 style={{
-          fontSize: "clamp(32px, 5vw, 52px)",
-          fontWeight: 400,
-          color: "#f0ede8",
-          margin: "0 0 12px",
-          letterSpacing: "-0.5px",
-          lineHeight: 1.1,
-        }}>
-          සිංහල
-          <span style={{ color: "#c8a97e", marginLeft: 12 }}>Converter</span>
+
+        <h1 className="title-3d">
+          සිංහල <span className="title-glow">Creator Studio</span>
         </h1>
-        <p style={{ color: "#555", fontSize: 14, fontFamily: "monospace", margin: 0, letterSpacing: 0.5 }}>
-          Sinhala Unicode · FM Abhaya · bidirectional
+        <p className="subtitle-3d">
+          All-in-one toolkit for Sri Lankan CapCut & Video Creators
         </p>
-      </div>
 
-      {/* Main card */}
-      <div style={{
-        width: "100%",
-        maxWidth: 760,
-        background: "#141414",
-        border: "1px solid #222",
-        borderRadius: 16,
-        overflow: "hidden",
-      }}>
-
-        {/* Input section */}
-        <div style={{ padding: "24px 24px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontFamily: "monospace", color: "#444", letterSpacing: 1.5, textTransform: "uppercase" }}>Input</span>
-            <span style={{ fontSize: 11, fontFamily: "monospace", color: "#333" }}>{charCount} chars</span>
-          </div>
-          <textarea
-            value={input}
-            onChange={e => handleInput(e.target.value)}
-            placeholder="Paste or type Sinhala text here..."
-            style={{
-              width: "100%",
-              minHeight: 140,
-              background: "#0f0f0f",
-              border: "1px solid #222",
-              borderRadius: 10,
-              color: "#e8e4de",
-              fontSize: 18,
-              lineHeight: 1.8,
-              padding: "14px 16px",
-              resize: "vertical",
-              outline: "none",
-              fontFamily: "'Noto Sans Sinhala', 'Iskoola Pota', Georgia, serif",
-              boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={e => e.target.style.borderColor = "#333"}
-            onBlur={e => e.target.style.borderColor = "#222"}
-          />
-        </div>
-
-        {/* Action buttons */}
-        <div style={{ padding: "16px 24px", display: "flex", gap: 10, alignItems: "center" }}>
-          <button
-            onClick={() => doConvert("toFM")}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              background: mode === "toFM" ? "#c8a97e" : "#1e1e1e",
-              border: `1px solid ${mode === "toFM" ? "#c8a97e" : "#2a2a2a"}`,
-              borderRadius: 10,
-              color: mode === "toFM" ? "#0f0f0f" : "#888",
-              fontSize: 13,
-              fontFamily: "monospace",
-              letterSpacing: 0.5,
-              cursor: "pointer",
-              transition: "all 0.15s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            onMouseEnter={e => { if (mode !== "toFM") { e.target.style.background = "#222"; e.target.style.color = "#aaa"; }}}
-            onMouseLeave={e => { if (mode !== "toFM") { e.target.style.background = "#1e1e1e"; e.target.style.color = "#888"; }}}
-          >
-            <span style={{ fontSize: 12 }}>Unicode</span>
-            <span style={{ opacity: 0.6 }}>→</span>
-            <span style={{ fontSize: 12 }}>FM Abhaya</span>
+        {/* ── Tab Navigation ── */}
+        <nav className="nav-tabs">
+          <button className={`tab-btn ${activeTab === "translator" ? "active" : ""}`} onClick={() => setActiveTab("translator")}>
+            <IconText /> Translator
           </button>
-
-          <button
-            onClick={() => doConvert("toUnicode")}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              background: mode === "toUnicode" ? "#7eb5c8" : "#1e1e1e",
-              border: `1px solid ${mode === "toUnicode" ? "#7eb5c8" : "#2a2a2a"}`,
-              borderRadius: 10,
-              color: mode === "toUnicode" ? "#0f0f0f" : "#888",
-              fontSize: 13,
-              fontFamily: "monospace",
-              letterSpacing: 0.5,
-              cursor: "pointer",
-              transition: "all 0.15s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            onMouseEnter={e => { if (mode !== "toUnicode") { e.target.style.background = "#222"; e.target.style.color = "#aaa"; }}}
-            onMouseLeave={e => { if (mode !== "toUnicode") { e.target.style.background = "#1e1e1e"; e.target.style.color = "#888"; }}}
-          >
-            <span style={{ fontSize: 12 }}>FM Abhaya</span>
-            <span style={{ opacity: 0.6 }}>→</span>
-            <span style={{ fontSize: 12 }}>Unicode</span>
+          <button className={`tab-btn ${activeTab === "soundboard" ? "active" : ""}`} onClick={() => setActiveTab("soundboard")}>
+            <IconVolume /> Soundboard
           </button>
+          <button className={`tab-btn ${activeTab === "fonts" ? "active" : ""}`} onClick={() => setActiveTab("fonts")}>
+            <IconFont /> Fonts
+          </button>
+          <button className={`tab-btn ${activeTab === "presets" ? "active" : ""}`} onClick={() => setActiveTab("presets")}>
+            <IconBrush /> Presets
+          </button>
+        </nav>
 
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              onClick={handleSwap}
-              title="Swap input / output"
-              style={{
-                width: 40, height: 40,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                color: "#555",
-                cursor: output ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                opacity: output ? 1 : 0.4,
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={e => { if (output) e.target.style.color = "#888"; }}
-              onMouseLeave={e => e.target.style.color = "#555"}
-            >
-              <IconSwap />
-            </button>
-            <button
-              onClick={handleClear}
-              title="Clear all"
-              style={{
-                width: 40, height: 40,
-                background: "#1e1e1e",
-                border: "1px solid #2a2a2a",
-                borderRadius: 10,
-                color: "#555",
-                cursor: input ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                opacity: input ? 1 : 0.4,
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={e => { if (input) e.target.style.color = "#888"; }}
-              onMouseLeave={e => e.target.style.color = "#555"}
-            >
-              <IconClear />
-            </button>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: 1, background: "#1e1e1e", margin: "0 24px" }} />
-
-        {/* Output section */}
-        <div style={{ padding: "0 24px 24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0 10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 11, fontFamily: "monospace", color: "#444", letterSpacing: 1.5, textTransform: "uppercase" }}>Output</span>
-              {mode && (
-                <span style={{
-                  fontSize: 10,
-                  fontFamily: "monospace",
-                  background: mode === "toFM" ? "#2a2010" : "#101a2a",
-                  color: mode === "toFM" ? "#c8a97e" : "#7eb5c8",
-                  border: `1px solid ${mode === "toFM" ? "#3a3020" : "#1a2a3a"}`,
-                  padding: "2px 8px",
-                  borderRadius: 20,
-                  letterSpacing: 1,
-                }}>
-                  {mode === "toFM" ? "FM Abhaya" : "Unicode"}
-                </span>
-              )}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: TRANSLATOR */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "translator" && (
+          <>
+            {/* Mode + Utility Controls */}
+            <div className="control-switch-bar">
+              <div className="mode-selector-group">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    className={`mode-btn ${mode === m.id ? "active" : ""}`}
+                    onClick={() => { setMode(m.id); setInput(""); }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div className="top-util-group">
+                <button className="btn-3d btn-grey" onClick={handleSwap} disabled={!output} title="Swap to input">
+                  <IconSwap />
+                </button>
+                <button className="btn-3d btn-grey" onClick={handleClear} disabled={!input} title="Clear">
+                  <IconClear />
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleCopy}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "6px 12px",
-                background: copied ? "#1a2a1a" : "#1e1e1e",
-                border: `1px solid ${copied ? "#2a4a2a" : "#2a2a2a"}`,
-                borderRadius: 8,
-                color: copied ? "#6abf6a" : "#555",
-                fontSize: 12,
-                fontFamily: "monospace",
-                cursor: output ? "pointer" : "not-allowed",
-                opacity: output ? 1 : 0.4,
-                transition: "all 0.2s",
-              }}
-            >
-              {copied ? <IconCheck /> : <IconCopy />}
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
 
-          <div style={{
-            minHeight: 140,
-            background: "#0a0a0a",
-            border: "1px solid #1e1e1e",
-            borderRadius: 10,
-            padding: "14px 16px",
-            color: output ? "#e8e4de" : "#333",
-            fontSize: 18,
-            lineHeight: 1.8,
-            fontFamily: "'Noto Sans Sinhala', 'Iskoola Pota', Georgia, serif",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-            userSelect: output ? "text" : "none",
-          }}>
-            {output || (
-              <span style={{ fontFamily: "monospace", fontSize: 13, fontStyle: "normal" }}>
-                — result appears here —
-              </span>
+            {/* 3D Tilt Card */}
+            <div className="tilt-card-wrapper">
+              <div
+                className="tilt-card"
+                ref={cardRef}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                <div className="workspace-console">
+                  {/* Input Pane */}
+                  <div>
+                    <div className="section-header">
+                      <span className="section-label">Input</span>
+                      <span className="section-count">{input.length} chars</span>
+                    </div>
+                    <textarea
+                      className="textarea-3d"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder={
+                        mode === "singlish"
+                          ? "Type in English (e.g. api kohomada)…"
+                          : mode === "fm-to-unicode"
+                          ? "Paste FM Abhaya text here…"
+                          : "Type or paste Sinhala Unicode text…"
+                      }
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  {/* Output Pane */}
+                  <div>
+                    <div className="section-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span className="section-label">Output</span>
+                        {output && (
+                          <span className={`badge-mode ${activeMode?.badge}`}>
+                            {activeMode?.badgeLabel}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        className={`btn-3d ${copied ? "btn-cyan" : "btn-grey"}`}
+                        style={{ padding: "5px 12px", fontSize: 11, borderRadius: 9 }}
+                        onClick={handleCopy}
+                        disabled={!output}
+                      >
+                        {copied ? <IconCheck /> : <IconCopy />}
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <div className={`output-box-3d ${output ? "active" : ""}`}>
+                      {output || (
+                        <span className="output-placeholder">
+                          — converted text appears here in real time —
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            {output && (
+              <div className="stats-panel-3d">
+                <span>In: <span className="stats-val">{input.length}</span></span>
+                <span className="stats-dot">·</span>
+                <span>Out: <span className="stats-val">{output.length}</span></span>
+                <span className="stats-dot">·</span>
+                <span>Ratio: <span className="stats-val">{(output.length / input.length).toFixed(2)}x</span></span>
+              </div>
             )}
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: SOUNDBOARD */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "soundboard" && (
+          <div className="tilt-card-wrapper">
+            <div className="tilt-card">
+              <div className="section-header" style={{ marginBottom: 24 }}>
+                <div>
+                  <span className="section-label" style={{ fontSize: 13, display: "block", marginBottom: 4 }}>🔊 Sri Lankan Meme Soundboard</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Popular sounds for CapCut & TikTok reactions. Click to play.
+                  </span>
+                </div>
+              </div>
+              <div className="soundboard-grid">
+                {SOUNDS.map((s) => (
+                  <div key={s.id} className="sound-card">
+                    <div className="sound-icon-box">
+                      <span style={{ fontSize: 22 }}>{s.emoji}</span>
+                    </div>
+                    <div>
+                      <div className="sound-title">{s.title}</div>
+                      <div className="sound-desc">{s.desc}</div>
+                    </div>
+                    <div className="sound-btn-group">
+                      <button
+                        className={`btn-3d btn-sound-play ${playingId === s.id ? "btn-cyan" : "btn-violet"}`}
+                        onClick={() => handlePlaySound(s.id)}
+                      >
+                        <IconPlay /> {playingId === s.id ? "Playing…" : "Play"}
+                      </button>
+                      <button className="btn-3d btn-grey btn-sound-dl">
+                        <IconDownload />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ marginTop: 24, fontSize: 11, color: "var(--text-muted)", textAlign: "center", fontFamily: "monospace" }}>
+                🚧 Audio clips coming soon — Connect your own MP3 links to the SOUNDS array in App.jsx
+              </p>
+            </div>
           </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: FONTS */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "fonts" && (
+          <div className="tilt-card-wrapper">
+            <div className="tilt-card">
+              <div className="section-header" style={{ marginBottom: 24 }}>
+                <div>
+                  <span className="section-label" style={{ fontSize: 13, display: "block", marginBottom: 4 }}>📁 Sinhala Font Downloads</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Download & import these fonts into CapCut, Premiere Pro, or any editing software.
+                  </span>
+                </div>
+              </div>
+              <div className="fonts-grid">
+                {FONTS.map((f) => (
+                  <div key={f.id} className="font-card">
+                    <div className="font-info">
+                      <h3>{f.name}</h3>
+                      <p>{f.desc}</p>
+                    </div>
+                    <div className="font-preview">{f.preview}</div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>{f.note}</div>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                      <button className="btn-3d btn-violet" style={{ width: "100%" }}>
+                        <IconDownload /> Download Font
+                      </button>
+                    </a>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 24, background: "#06080b", border: "1px solid #1e293b", borderRadius: 16, padding: 20 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>📱 How to add fonts to CapCut (Mobile)</p>
+                <ol style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 2, paddingLeft: 18 }}>
+                  <li>Download the <strong>.ttf</strong> or <strong>.otf</strong> font file to your phone</li>
+                  <li>Open <strong>CapCut</strong> → New Project → Text → My Fonts</li>
+                  <li>Tap <strong>Import</strong> and select the downloaded font</li>
+                  <li>Use the <strong>Translator</strong> tab to convert text, then paste in CapCut</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: TEXT PRESETS */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "presets" && (
+          <div className="tilt-card-wrapper">
+            <div className="tilt-card">
+              <div className="section-header" style={{ marginBottom: 24 }}>
+                <div>
+                  <span className="section-label" style={{ fontSize: 13, display: "block", marginBottom: 4 }}>🎨 Text Style Presets</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Viral Sinhala text styles for CapCut, TikTok & YouTube thumbnails. Copy CSS to use.
+                  </span>
+                </div>
+              </div>
+              <div className="presets-grid">
+                {PRESETS.map((p) => (
+                  <div key={p.id} className="preset-card">
+                    <div className="preset-name">{p.name}</div>
+                    <div className="preset-preview-container">
+                      <span style={{ ...p.style }}>{p.preview}</span>
+                    </div>
+                    <div className="preset-css">{p.css}</div>
+                    <button
+                      className={`btn-3d ${copiedPresetId === p.id ? "btn-cyan" : "btn-grey"}`}
+                      style={{ width: "100%", fontSize: 12 }}
+                      onClick={() => handleCopyPreset(p)}
+                    >
+                      {copiedPresetId === p.id ? <IconCheck /> : <IconCopy />}
+                      {copiedPresetId === p.id ? "Copied!" : "Copy CSS"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="footer-text-3d">
+          Powered by UCSC LTRL · Built for Sri Lankan Creators 🇱🇰<br />
+          සිංහල Creator Studio v2.0
         </div>
       </div>
-
-      {/* Stats row */}
-      {output && (
-        <div style={{
-          display: "flex",
-          gap: 16,
-          marginTop: 16,
-          fontFamily: "monospace",
-          fontSize: 12,
-          color: "#444",
-        }}>
-          <span>{input.length} chars in</span>
-          <span style={{ color: "#2a2a2a" }}>·</span>
-          <span>{output.length} chars out</span>
-          <span style={{ color: "#2a2a2a" }}>·</span>
-          <span>ratio {(output.length / input.length).toFixed(2)}×</span>
-        </div>
-      )}
-
-      {/* Mapping count footer */}
-      <div style={{
-        marginTop: 48,
-        fontFamily: "monospace",
-        fontSize: 11,
-        color: "#2a2a2a",
-        letterSpacing: 1,
-        textAlign: "center",
-      }}>
-        {Object.keys(UNICODE_TO_FM).length} mappings loaded · longest-match-first algorithm
-      </div>
-    </div>
+    </>
   );
 }
