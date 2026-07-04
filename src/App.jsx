@@ -108,7 +108,7 @@ const PRESETS = [
   {
     id: 1,
     name: "🔥 Flame Glow",
-    preview: "ගිනි ස්ටයිල්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       color: "#ff4500",
       textShadow: "0 0 10px #ff4500, 0 0 25px #ff6000, 0 0 50px #ff8c00",
@@ -121,7 +121,7 @@ const PRESETS = [
   {
     id: 2,
     name: "💎 Diamond Neon",
-    preview: "නිල් ලයිට්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       color: "#00f0ff",
       textShadow: "0 0 8px #00f0ff, 0 0 20px #0066ff",
@@ -134,7 +134,7 @@ const PRESETS = [
   {
     id: 3,
     name: "👑 Gold King",
-    preview: "රජ ස්ටයිල්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       background: "linear-gradient(135deg, #ffd700, #ff8c00)",
       WebkitBackgroundClip: "text",
@@ -148,7 +148,7 @@ const PRESETS = [
   {
     id: 4,
     name: "🌸 Pink Anime",
-    preview: "ලස්සන ෆොන්ට්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       color: "#ff79c6",
       textShadow: "0 0 8px #ff79c6, 0 2px 4px rgba(0,0,0,0.8)",
@@ -161,7 +161,7 @@ const PRESETS = [
   {
     id: 5,
     name: "⚡ Electric",
-    preview: "විදුලි ස්ටයිල්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       color: "#f9ca24",
       textShadow: "0 0 6px #f9ca24, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
@@ -174,7 +174,7 @@ const PRESETS = [
   {
     id: 6,
     name: "🌊 Ocean Wave",
-    preview: "සාගර ෆොන්ට්",
+    preview: "ශ්‍රී ලංකා",
     style: {
       background: "linear-gradient(135deg, #00b4db, #0083b0)",
       WebkitBackgroundClip: "text",
